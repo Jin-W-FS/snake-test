@@ -3,24 +3,16 @@
 #include <string.h>
 #include <assert.h>
 
+#include <unistd.h>
+
 #include "snake.h"
 
-#ifndef FLT_MIN
-#	define FLT_MIN 1e-37f
-#endif
-
-#ifndef FLT_MAX
-#	define FLT_MAX 1e+37f
-#endif
-
-Map base_map;
-static char* gameover = "GAME OVER";
-
-void draw_to_map(Map map, Snake* snake, Food* food)
+void draw_to_map(Map map, Map base, Snake* snake, Food* food)
 {
+	static char* gameover = "GAME OVER";
 	int i;
 	/* base map */
-	memcpy(map, base_map, MAP_WIDTH * MAP_HEIGHT);
+	memcpy(map, base, MAP_WIDTH * MAP_HEIGHT);
 	/* food, may be overlapped by snake */
 	if (food)
 		map[food->point.y][food->point.x] = PRT_FOOD;
@@ -48,50 +40,20 @@ void gain_food(Map map, Food* food)
 }
 
 /* check snake ate food OR crashed */
-void check(Map map, Snake* snake, Food* food)
+void check(SnakeWorld* world)
 {
+	Food* food = &(world->food);
+	Snake* snake = &(world->snake);
 	Point* head = snake->snake;
-	if (map[head->y][head->x] == PRT_WALL || map[head->y][head->x] == PRT_SNAKE) /* crashed */
+	if (world->map[head->y][head->x] == PRT_WALL || world->map[head->y][head->x] == PRT_SNAKE) /* crashed */
 		snake->length = -1;
 	else if (head->x == food->point.x && head->y == food->point.y) /* ate food */
 	{
 		snake->len_to_grow += food->weight;
-		gain_food(map, food);
+		gain_food(world->map, food);
 	}
 }
 
-
-void init(Map map, Snake* snake, Food* food)
-{
-	int i, j;
-	/* init base_map */
-	for (i = 0; i < MAP_HEIGHT; i++)
-	{
-		for (j = 0; j < MAP_WIDTH; j++)
-		{
-			if (i == 0 || j == 0 || i == MAP_HEIGHT - 1 || j == MAP_WIDTH - 1)
-				base_map[i][j] = PRT_WALL;
-			else
-				base_map[i][j] = PRT_BLANK;
-		}
-	}
-	/* snake @ (1,1) */
-	snake->snake = (Point*)malloc(MAX_SNAKE_LEN * sizeof(Point));
-	snake->length = 1;
-	snake->len_to_grow = 3;
-	snake->direct = EAST;
-	snake->snake[0].x = snake->snake[0].y = 1;
-	/* init map for init food */
-	draw_to_map(map, snake, NULL);
-	/* init food */
-	srand((unsigned int)time(NULL));
-	gain_food(map, food);
-}
-void release(Snake* snake)
-{
-	free(snake->snake);
-	snake->snake = NULL;
-}
 
 /* move snake towards snake->direct */
 Point p_direct[4] =
@@ -106,41 +68,83 @@ void move(Snake* snake)
 {
 	assert(snake->length > 0);
 	assert(snake->len_to_grow >= 0);
-	
+
 	memmove(snake->snake + 1, snake->snake, snake->length * sizeof(Point));
 	snake->snake[0].x += p_direct[snake->direct].x;
 	snake->snake[0].y += p_direct[snake->direct].y;
-	if (snake->len_to_grow)
+	if (snake->len_to_grow > 0)
 	{
 		snake->len_to_grow--;
 		snake->length++;
 	}
 }
-
-int run(print_func print, setDirect_func set_direct)
+/* WOS: World Of Snake */
+void init(SnakeWorld* world)
 {
-	Snake snake;
-	Food food;
-	Map map;
-	
-	init(map, &snake, &food);
-	food.point.x = 9, food.point.y = 1;
-	
-	while(snake.length > 0)
+	int i, j;
+	Food* food = &(world->food);
+	Snake* snake = &(world->snake);
+
+	/* init base_map */
+	for (i = 0; i < MAP_HEIGHT; i++)
 	{
-		draw_to_map(map, &snake, &food);
-		if (print)
-			print(map);
-		if (set_direct)
-			set_direct(map, &snake, &food);
-		move(&snake);
-		check(map, &snake, &food);
+		for (j = 0; j < MAP_WIDTH; j++)
+		{
+			if (i == 0 || j == 0 || i == MAP_HEIGHT - 1 || j == MAP_WIDTH - 1)
+				world->base_map[i][j] = PRT_WALL;
+			else
+				world->base_map[i][j] = PRT_BLANK;
+		}
 	}
-	draw_to_map(map, &snake, &food);
-	if (print)
-		print(map);
-		
-	release(&snake);
+	/* snake @ (1,1) */
+	snake->snake = (Point*)malloc(MAX_SNAKE_LEN * sizeof(Point));
+	snake->length = 1;
+	snake->len_to_grow = 3;
+	snake->direct = EAST;
+	snake->snake[0].x = snake->snake[0].y = 1;
+	/* init map for init food */
+	draw_to_map(world->map, world->base_map, snake, NULL);
+	/* init food */
+	srand((unsigned int)time(NULL));
+	gain_food(world->map, food);
+
+	world->print = NULL;
+	world->setdir = NULL;
+}
+void release(SnakeWorld* world)
+{
+	free(world->snake.snake);
+	world->snake.snake = NULL;
+	world->print = NULL;
+	world->setdir = NULL;
+}
+
+int run_once(SnakeWorld* world)
+{
+	move(&(world->snake));
+	check(world);
+	draw_to_map(world->map, world->base_map, &world->snake, &world->food);
 	
+	return (world->snake.length > 0);
+}
+
+int run(SnakeWorld* world)
+{
+	if (world->print)
+		(*(world->print))(world->map);
+	if (world->setdir)
+		(*(world->setdir))(world);
+
+	while(run_once(world))
+	{
+		if (world->print)
+			(*(world->print))(world->map);
+		if (world->setdir)
+			(*(world->setdir))(world);
+	}
 	return 0;
 }
+
+
+	
+	

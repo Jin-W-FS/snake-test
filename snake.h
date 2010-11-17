@@ -3,6 +3,7 @@
 
 /* the structs to describe an usual snake game */
 
+/* point */
 typedef struct _Point
 {
 	int x, y;
@@ -11,15 +12,17 @@ typedef struct _Point
 #define MAP_WIDTH 80
 #define MAP_HEIGHT 24
 
+/* map */
 typedef char Map[MAP_HEIGHT][MAP_WIDTH];
-extern Map base_map;
 
+/* food */
 typedef struct _Food
 {
 	Point point;
 	float weight;
 }Food;
 
+/* snake */
 enum DIRECT{
 	EAST, SOUTH, WEST, NORTH
 };
@@ -34,24 +37,39 @@ typedef struct _Snake
 	enum DIRECT direct;
 }Snake;
 
-void init(Map map, Snake* snake, Food* food);
-void release(Snake* snake);
-
 void move(Snake* snake);
 void gain_food(Map map, Food* food);
-/* check snake ate food OR crashed */
-void check(Map map, Snake* snake, Food* food);
 
 #define PRT_BLANK ' '
 #define PRT_WALL '#'
 #define PRT_FOOD '@'
 #define PRT_SNAKE '*'
-void draw_to_map(Map map, Snake* snake, Food* food);
+void draw_to_map(Map map, Map base, Snake* snake, Food* food);
+
+/* world of the snake */
 
 /* callback functions */
+struct _SnakeWorld;
 typedef int (*print_func)(Map map);
-typedef int (*setDirect_func)(Map map, Snake* snake, Food* food);
+typedef int (*setDirect_func)(struct _SnakeWorld* SnakeWorld);
 
-int run(print_func print, setDirect_func set_direct);
+typedef struct _SnakeWorld
+{
+	Map map, base_map;
+	Snake snake;
+	Food food;
+
+	print_func print;
+	setDirect_func setdir;
+}SnakeWorld;
+
+void init(SnakeWorld* world);
+void release(SnakeWorld* world);
+
+/* check if snake ate food, and crashed */
+void check(SnakeWorld* world);
+/* run the world */
+int run_once(SnakeWorld* world);
+int run(SnakeWorld* world);
 
 #endif

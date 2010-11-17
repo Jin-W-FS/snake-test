@@ -1,12 +1,20 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <assert.h>
 
 /* for sleep() */
 #include <unistd.h>
 
 #include "snake.h"
 
+#ifndef FLT_MIN
+#	define FLT_MIN 1e-37f
+#endif
+
+#ifndef FLT_MAX
+#	define FLT_MAX 1e+37f
+#endif
 
 int print(Map map)
 {
@@ -18,15 +26,29 @@ int print(Map map)
 	}
 	sleep(1);
 }
-int set_dir(Map map, Snake* snake, Food* food)
+
+int set_dir(SnakeWorld* world)
 {
 	static int cnt;
-	snake->direct = cnt % 20 / 5;
+	world->snake.direct = cnt % 40 / 10;
 	cnt++;
+}
+
+int demo()
+{
+	SnakeWorld world;
+	init(&world);
+	world.print = print;
+	world.setdir = set_dir;
+	world.food.point.x = 11, world.food.point.y = 3;
+	run(&world);
+	release(&world);
+	return 0;
 }
 
 int main()
 {
-	return run(print, set_dir);
+	demo();
+	return 0;
 }
 
