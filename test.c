@@ -2,27 +2,31 @@
 #include <stdlib.h>
 #include <math.h>
 
+/* for sleep() */
+#include <unistd.h>
+
 #include "snake.h"
 
 
+int print(Map map)
+{
+	int i;
+	for (i = 0; i < MAP_HEIGHT; i++)
+	{
+		putchar('\n');
+		write(STDOUT_FILENO, map[i], MAP_WIDTH);
+	}
+	sleep(1);
+}
+int set_dir(Map map, Snake* snake, Food* food)
+{
+	static int cnt;
+	snake->direct = cnt % 20 / 5;
+	cnt++;
+}
+
 int main()
 {
-	Snake snake;
-	Food food;
-	init(&snake, &food);
-	food.point.x = 9, food.point.y = 1;
-	
-	while(snake.length > 0)
-	{
-		draw_to_map(&snake, &food);
-		print();
-		move(&snake);
-		check(&snake, &food);
-	}
-	draw_to_map(&snake, &food);
-	print();
-		
-	release(&snake);
-	
-	return 0;
+	return run(print, set_dir);
 }
+
