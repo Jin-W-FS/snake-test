@@ -8,6 +8,7 @@ typedef struct _Point
 {
 	int x, y;
 }Point;
+#define Point_eq(lhs, rhs) (lhs.x == rhs.x && lhs.y == rhs.y)
 
 #define MAP_WIDTH 80
 #define MAP_HEIGHT 24

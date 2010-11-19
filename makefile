@@ -1,6 +1,6 @@
 CC=gcc
-CFLAGS=
-LDFLAGS=
+CFLAGS=-g
+LDFLAGS=-lm
 
 TARGET=test
 OBJS=test.o snake.o

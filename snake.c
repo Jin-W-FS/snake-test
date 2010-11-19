@@ -68,6 +68,7 @@ void move(Snake* snake)
 {
 	assert(snake->length > 0);
 	assert(snake->len_to_grow >= 0);
+	assert(snake->direct >= 0 && snake->direct < 4);
 
 	memmove(snake->snake + 1, snake->snake, snake->length * sizeof(Point));
 	snake->snake[0].x += p_direct[snake->direct].x;
@@ -142,6 +143,8 @@ int run(SnakeWorld* world)
 		if (world->setdir)
 			(*(world->setdir))(world);
 	}
+	if (world->print)
+		(*(world->print))(world->map);
 	return 0;
 }
 
